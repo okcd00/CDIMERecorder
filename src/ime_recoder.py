@@ -16,13 +16,11 @@ sys.path.append('../')
 # main packages
 import re
 import win32gui
-import win32api
-import win32con
 import numpy as np
 from tqdm import tqdm
 from PIL import Image, ImageGrab
 from utils import PROJECT_PATH
-from pykeyboard import PyKeyboard
+from pykeyboard import PyKeyboard  # PyUserInput
 from visual_residue import see_and_remember, time_identifier
 
 

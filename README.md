@@ -9,7 +9,7 @@ conda 环境
 # 在命令行输入以下命令，创建名为paddle_env的环境
 # 此处为加速下载，使用清华源
 conda create --name paddle_env python=3.8 --channel https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
-# source C:/ProgramData/Anaconda3/Scripts/activate paddle_env
+# source D:/Anaconda/Scripts/activate paddle_env
 ```
 
 安装 paddlepaddle
@@ -33,8 +33,14 @@ error: Microsoft Visual C++ 14.0 or greater is required. Get it with "Microsoft 
 PaddleOCR 老出问题，转而安装 PaddleHub
 用 PaddleHub 装载 ICDAR2015 数据集训练出来的 [Differentiable Binarization+CRNN](https://arxiv.org/pdf/1507.05717.pdf) OCR 模型：
 ```
-
 pip install paddlehub -i https://mirror.baidu.com/pypi/simple
 # hub install chinese_ocr_db_crnn_server==1.1.3
 # 跟我一样 hub 指令无效的，可以直接调用 src/paddle_hub.py 自动下载模型文件。
+```
+
+关于 `win32gui 找不到指定的模块` 问题
+```
+# 去找环境的 scripts 目录
+# cd D:\Anaconda\Scripts
+python pywin32_postinstall.py -install
 ```

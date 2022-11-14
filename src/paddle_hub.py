@@ -34,7 +34,11 @@ for file in tqdm(files):
     for dic in result['data']:
         if dic['confidence'] < 0.8:
             continue
-        records[file[:-4]].append(dic['text'].strip('0123456789'))
-
+        rec.append((
+            dic['text'].strip('0123456789'), 
+            dic['text_box_position'][0][0]
+        ))
+    rec.sort(key=lambda x: x[1])
+    records[file[:-4]].append([x[0] for x in rec])
 
 pprint(records)

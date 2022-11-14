@@ -3,11 +3,10 @@ olefile>=0.46
 pillow>=9.2.0
 pywin32>=220
 pyautogui
-PyUserInput
-
+PyUserInput>=0.1.11
 
 # OCR model
-PaddlePaddle>=2.1.2
+PaddlePaddle>=2.3.2
 paddleocr>=2.0.1
 paddlehub
 pyclipper
