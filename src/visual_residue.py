@@ -18,11 +18,11 @@ from ctypes import windll
 from utils import PROJECT_PATH
 
 
-def time_identifier(type_postfix=True, postfix=None):
+def time_identifier(type_postfix=None, postfix=None):
     time_stamp = '{0:%m%d%H%M%S%f}'.format(datetime.datetime.now())[::-1]
     mask = map(lambda x: chr(ord(x[0]) + ord(x[1])), zip(time_stamp[::2], time_stamp[1::2]))
     t_id = ''.join(mask) + ''.join([str(random.randint(1, 10)) for _ in range(2)])
-    return t_id + (postfix if postfix else '') + ('.bmp' if type_postfix else '')
+    return t_id + (postfix if postfix else '') + (type_postfix if type_postfix else '')
 
 
 def see_and_remember(handle, dir_path, position_case=None, remove_title_bar=True, postfix=None, debug=False):
@@ -56,7 +56,7 @@ def see_and_remember(handle, dir_path, position_case=None, remove_title_bar=True
         print('mem_dc.GetSafeHdc:', result)
 
     # 存入bitmap临时文件
-    tmp_path = os.path.join(dir_path, time_identifier(postfix=postfix))
+    tmp_path = os.path.join(dir_path, time_identifier(postfix=postfix, type_postfix='.bmp'))
 
     if debug:
         print('save source to {}'.format(tmp_path))

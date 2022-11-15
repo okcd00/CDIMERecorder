@@ -1,9 +1,12 @@
-# control
+# RPA requirements
+pyautogui
+pywin32>=220
 olefile>=0.46
 pillow>=9.2.0
-pywin32>=220
-pyautogui
 PyUserInput>=0.1.11
+
+# pinyin
+pypinyin
 
 # OCR model
 PaddlePaddle>=2.3.2
