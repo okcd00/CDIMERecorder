@@ -16,8 +16,9 @@ sys.path.append('../')
 # main packages
 import re
 import cv2
-import datetime
 import win32gui
+# import pywinauto
+import itertools
 import numpy as np
 import paddlehub as hub
 from tqdm import tqdm
@@ -27,7 +28,6 @@ from pprint import pprint
 from file_io import load_json, dump_json
 from pypinyin import pinyin, Style
 from pykeyboard import PyKeyboard  # PyUserInput
-from visual_residue import time_identifier
 
 
 class IMERecorder(object):
@@ -149,8 +149,7 @@ class IMERecorder(object):
             return image, valid_flag
         except Exception as e:
             valid_flag = False
-            if self.debug:
-                print(e)
+            self.print(e)
         return None, valid_flag
 
     def record_candidates(self, dir_name=None, file_name=None, offsets=None, postfix=None, save_img=False):
@@ -194,7 +193,7 @@ class IMERecorder(object):
                             candidate, heteronym=True, 
                             style=Style.NORMAL)
                         pinyins = dfs(token_pinyins)
-                        self.print(candidate, pinyins)
+                        # self.print(candidate, pinyins)
                         failed_match = input_sequence not in pinyins 
                         failed_partly = not any([_py in input_sequence for _py in pinyins])
                         if failed_match and failed_partly:
@@ -212,15 +211,14 @@ class IMERecorder(object):
         records = {k: stable_unique(v) for k, v in records.items()}
         return records
 
-    def dump_records(self, records, record_path):
+    def dump_records(self, record_path):
         # record_path is a directory
-        if records is None or len(records) == 0:
-            records = self.records
         file_path = 'input_candidates_{}.{}'.format(
                 time.strftime('%y%m%d_%H%M%S', time.localtime()), 'json')
-        records = self.arrange_records(records)
+        # arrange records for repeat candidates
+        self.records = self.arrange_records(self.records)
         dump_path = os.path.join(record_path, file_path)
-        dump_json(obj=records, fp=dump_path)
+        dump_json(obj=self.records, fp=dump_path)
 
     def load_records(self, record_path):
         # record_path is a file
@@ -230,7 +228,9 @@ class IMERecorder(object):
                  record_page=10, 
                  save_img=False,
                  editor_window=None, 
-                 record_path=None):
+                 record_path=None,
+                 update_mode='skip',
+                 save_per_item=-1):
         # set the editor foreground
         if editor_window is None:
             editor_window = self.EDITOR_WINDOW_NAME
@@ -239,9 +239,16 @@ class IMERecorder(object):
         if record_path is None:
             record_path = self.RECORD_DIR_PATH
         # for each input sequence, record the candidates.
-        for _is in tqdm(input_sequence_list):
+        for _is_index, _is in tqdm(enumerate(input_sequence_list)):
+            if _is in self.records:
+                if update_mode in ['skip']:
+                    continue
             self.set_foreground(self.window_handle)
             self.type_string(_is)
+            # win_panel = pywinauto.findwindows.find_windows(
+            #     title="CandidateWindow", control_type="Pane",backend="uia")
+            # print(win_panel.Texts())  # <= timeout here
+            # print("Done here")
             images = []
             for _page in range(record_page):
                 time.sleep(0.2)
@@ -263,14 +270,33 @@ class IMERecorder(object):
                 candidates = self.extract_from_ocr_results(ocr_results, input_sequence=_is)
                 self.records.setdefault(_is, [])
                 self.records[_is].extend(candidates)
-        self.dump_records(self.records, record_path)
-        print("Finished at:", time.ctime())
+                self.print('\n', _is, candidates)
+            if 0 < save_per_item <= _is_index and _is_index % save_per_item == 0:
+                self.dump_records(self.records, record_path)
+        else:
+            self.dump_records(self.records, record_path)
+            self.print("Finished at:", time.ctime())
+
+
+def record_single_char_words():
+    ir = IMERecorder(debug=False)
+    ir.load_records('./records/input_candidates_221115_173927.json')
+    py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r') 
+               if not line.startswith('[')]
+    # test_list = ['wo', 'chendian', 'yaojiayou']
+    ir(input_sequence_list=py_list)
+
+
+def record_double_char_words():
+    ir = IMERecorder(debug=True)
+    ir.load_records('./records/input_candidates_221115_203841.json')
+    py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r') 
+               if not line.startswith('[')]
+    double_word_py_list = [f'{a}{b}' for a, b in itertools.product(py_list, py_list)]
+    # test_list = ['wo', 'chendian', 'yaojiayou']
+    ir(input_sequence_list=double_word_py_list, 
+       record_page=5, save_per_item=100)
 
 
 if __name__ == "__main__":
-    ir = IMERecorder(debug=False)
-    ir.load_records('./records/input_candidates_221115_173927.json')
-    test_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r') 
-                 if not line.startswith('[')]
-    # test_list = ['wo', 'chendian', 'yaojiayou']
-    ir(input_sequence_list=test_list)
+    record_double_char_words()

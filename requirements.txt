@@ -8,6 +8,9 @@ PyUserInput>=0.1.11
 # pinyin
 pypinyin
 
+# panel capture
+# pywinauto
+
 # OCR model
 PaddlePaddle>=2.3.2
 paddleocr>=2.0.1
