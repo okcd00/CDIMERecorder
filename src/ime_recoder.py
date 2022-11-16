@@ -44,10 +44,14 @@ class IMERecorder(object):
 
         # member variables
         self.window_handle = None
+        self.update_mode = None
+        self.record_page = 1
+        self.candidate_per_page = 8
         self.window_position = (0, 0, 0, 0)
         self.keyboard = PyKeyboard()
+        self.tap = self.keyboard.tap_key
 
-
+        # ocr variables
         self.ocr = None
         self.records = {}
         if use_ocr:
@@ -89,14 +93,18 @@ class IMERecorder(object):
         return [key]
 
     def type_string(self, input_sequence, interval=0.2):
-        self.keyboard.type_string(input_sequence, interval=interval)
+        self.set_foreground(self.window_handle)
+        self.keyboard.type_string(input_sequence, interval=interval) 
 
-    def page_down(self):
+    def page_down(self, pd_key=']'):
         # press and release
-        self.keyboard.tap_key(']', n=1, interval=0.1)
+        self.tap(pd_key, n=1, interval=0.1)
+
+    def change_line(self):
+        self.tap(self.keyboard.enter_key, n=1, interval=0.1)
 
     def clear_board(self):
-        self.keyboard.tap_key(self.keyboard.backspace_key, n=25, interval=0.1)
+        self.tap(self.keyboard.backspace_key, n=25, interval=0.1)
 
     def _get_screenshot(self, offsets=None, handle=None, postfix=None):
         if handle is None:
@@ -152,7 +160,8 @@ class IMERecorder(object):
             self.print(e)
         return None, valid_flag
 
-    def record_candidates(self, dir_name=None, file_name=None, offsets=None, postfix=None, save_img=False):
+    def capture_candidates_image(self, dir_name=None, file_name=None, 
+                                 offsets=None, postfix=None, save_img=False):
         if offsets is None:
             offsets = self.RECORD_OFFSETS
         image = self._get_screenshot(
@@ -188,6 +197,8 @@ class IMERecorder(object):
                 if 1 - dic['confidence'] > len(candidate) * 0.1:
                     continue
                 if candidate:
+                    if re.match('^[a-z]+$', candidate):
+                        continue
                     if input_sequence:
                         token_pinyins = pinyin(
                             candidate, heteronym=True, 
@@ -195,7 +206,8 @@ class IMERecorder(object):
                         pinyins = dfs(token_pinyins)
                         # self.print(candidate, pinyins)
                         failed_match = input_sequence not in pinyins 
-                        failed_partly = not any([_py in input_sequence for _py in pinyins])
+                        failed_partly = not any([(_py in input_sequence) or (input_sequence in _py)
+                                                 for _py in pinyins])
                         if failed_match and failed_partly:
                             continue
                     # text candidate, confidence, position
@@ -208,7 +220,7 @@ class IMERecorder(object):
         return candidates
 
     def arrange_records(self, records):
-        records = {k: stable_unique(v) for k, v in records.items()}
+        records = {k: stable_unique(records[k]) for k in sorted(records.keys())}
         return records
 
     def dump_records(self, record_path):
@@ -224,35 +236,20 @@ class IMERecorder(object):
         # record_path is a file
         self.records = load_json(record_path)
 
-    def __call__(self, input_sequence_list, 
-                 record_page=10, 
-                 save_img=False,
-                 editor_window=None, 
-                 record_path=None,
-                 update_mode='skip',
-                 save_per_item=-1):
-        # set the editor foreground
-        if editor_window is None:
-            editor_window = self.EDITOR_WINDOW_NAME
-        self.window_handle = self.find_handle(editor_window)
-        # set the dump path
-        if record_path is None:
-            record_path = self.RECORD_DIR_PATH
-        # for each input sequence, record the candidates.
+    def ocr_recording(self, input_sequence_list, 
+                      save_img=False,
+                      record_path=None,
+                      update_mode='skip',
+                      save_per_item=-1):
         for _is_index, _is in tqdm(enumerate(input_sequence_list)):
             if _is in self.records:
                 if update_mode in ['skip']:
                     continue
-            self.set_foreground(self.window_handle)
             self.type_string(_is)
-            # win_panel = pywinauto.findwindows.find_windows(
-            #     title="CandidateWindow", control_type="Pane",backend="uia")
-            # print(win_panel.Texts())  # <= timeout here
-            # print("Done here")
             images = []
-            for _page in range(record_page):
+            for _page in range(self.record_page):
                 time.sleep(0.2)
-                image = self.record_candidates(
+                image = self.capture_candidates_image(
                     dir_name=record_path,
                     file_name=f"{_is}_page{_page}",
                     postfix=f"{_is}_page{_page}",
@@ -272,10 +269,57 @@ class IMERecorder(object):
                 self.records[_is].extend(candidates)
                 self.print('\n', _is, candidates)
             if 0 < save_per_item <= _is_index and _is_index % save_per_item == 0:
-                self.dump_records(self.records, record_path)
+                self.dump_records(record_path)
         else:
-            self.dump_records(self.records, record_path)
+            self.dump_records(record_path)
             self.print("Finished at:", time.ctime())
+
+    def typist_recording(self, input_sequence_list):
+        for _is_index, _is in tqdm(enumerate(input_sequence_list)):
+            self.type_string(f"{_is}")
+            self.tap(self.keyboard.enter_key)
+            self.type_string(f" | ")
+            if _is in self.records:
+                if self.update_mode in ['skip']:
+                    continue
+            for _page in range(self.record_page):
+                for _index in range(self.candidate_per_page):
+                    self.type_string(_is)
+                    for _ in range(_page):
+                        self.page_down(pd_key=self.keyboard.page_down_key)
+                    self.type_string(f"{_index+1}")
+                    self.tap(self.keyboard.space_key, n=2, interval=0.1)
+                    self.type_string(" | ")
+                    time.sleep(0.1)
+            self.change_line()
+
+    def __call__(self, input_sequence_list, 
+                 record_page=10, 
+                 editor_window=None, 
+                 record_path=None,
+                 record_mode='ocr',
+                 update_mode='skip',
+                 save_per_item=-1):
+        self.record_page = record_page
+        self.update_mode = update_mode
+        # set the editor foreground
+        if editor_window is None:
+            editor_window = self.EDITOR_WINDOW_NAME
+        self.window_handle = self.find_handle(editor_window)
+        # set the dump path
+        if record_path is None:
+            record_path = self.RECORD_DIR_PATH
+        # for each input sequence, record the candidates.
+        if record_mode in ['ocr']:
+            # 24 seconds per input sequence (40 candidates)
+            self.ocr_recording(
+                input_sequence_list, 
+                save_img=False,
+                record_path=record_path,
+                save_per_item=save_per_item)
+        elif record_mode in ['typist']:
+            # 80 seconds per input sequence (40 candidates)
+            self.typist_recording(input_sequence_list)
 
 
 def record_single_char_words():
@@ -289,14 +333,15 @@ def record_single_char_words():
 
 def record_double_char_words():
     ir = IMERecorder(debug=True)
-    ir.load_records('./records/input_candidates_221115_203841.json')
+    ir.load_records('./records/input_candidates_221116_202145.json')
     py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r') 
                if not line.startswith('[')]
     double_word_py_list = [f'{a}{b}' for a, b in itertools.product(py_list, py_list)]
     # test_list = ['wo', 'chendian', 'yaojiayou']
     ir(input_sequence_list=double_word_py_list, 
-       record_page=5, save_per_item=100)
+       record_page=5, save_per_item=50)
 
 
 if __name__ == "__main__":
+    # record_single_char_words()
     record_double_char_words()
