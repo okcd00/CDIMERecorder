@@ -36,7 +36,9 @@ class IMERecorder(object):
 
     # relative position x1, y1, x2, y2
     # Microsoft IME
-    RECORD_OFFSETS = (66, 128, 1024, 172, 1024-66, 172-128)  
+    # RECORD_OFFSETS = (66, 128, 1024, 172, 1024-66, 172-128)  
+    # Tencent IME
+    RECORD_OFFSETS = (66, 128, 1280, 176, 1280-66, 176-128)  
 
     def __init__(self, debug=False, use_ocr=True) -> None:
         self.debug = debug
@@ -199,7 +201,7 @@ class IMERecorder(object):
                 if candidate:
                     if re.match('^[a-z]+$', candidate):
                         continue
-                    if input_sequence:
+                    if input_sequence: 
                         token_pinyins = pinyin(
                             candidate, heteronym=True, 
                             style=Style.NORMAL)
@@ -233,8 +235,11 @@ class IMERecorder(object):
         dump_json(obj=self.records, fp=dump_path)
 
     def load_records(self, record_path):
-        # record_path is a file
-        self.records = load_json(record_path)
+        if record_path is None:
+            return
+        if os.path.exists(record_path):
+            # record_path is a file
+            self.records = load_json(record_path)
 
     def ocr_recording(self, input_sequence_list, 
                       save_img=False,
@@ -285,8 +290,9 @@ class IMERecorder(object):
             for _page in range(self.record_page):
                 for _index in range(self.candidate_per_page):
                     self.type_string(_is)
-                    for _ in range(_page):
-                        self.page_down(pd_key=self.keyboard.page_down_key)
+                    if _page > 0:
+                        self.tap(']', n=_page, interval=0.1)
+                        time.sleep(0.1)
                     self.type_string(f"{_index+1}")
                     self.tap(self.keyboard.space_key, n=2, interval=0.1)
                     self.type_string(" | ")
@@ -322,26 +328,29 @@ class IMERecorder(object):
             self.typist_recording(input_sequence_list)
 
 
-def record_single_char_words():
-    ir = IMERecorder(debug=False)
-    ir.load_records('./records/input_candidates_221115_173927.json')
+def record_single_char_words(existed_record_path):
+    ir = IMERecorder(debug=True)
+    ir.load_records(existed_record_path)
     py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r') 
                if not line.startswith('[')]
     # test_list = ['wo', 'chendian', 'yaojiayou']
-    ir(input_sequence_list=py_list)
+    ir(input_sequence_list=py_list, 
+       record_page=5, record_mode='typist')
 
 
-def record_double_char_words():
+def record_double_char_words(existed_record_path, current_progress='anben'):
     ir = IMERecorder(debug=True)
-    ir.load_records('./records/input_candidates_221116_202145.json')
+    ir.load_records(existed_record_path)
     py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r') 
                if not line.startswith('[')]
     double_word_py_list = [f'{a}{b}' for a, b in itertools.product(py_list, py_list)]
     # test_list = ['wo', 'chendian', 'yaojiayou']
+    double_word_py_list = double_word_py_list[double_word_py_list.index(current_progress):]
     ir(input_sequence_list=double_word_py_list, 
-       record_page=5, save_per_item=50)
+       record_page=2, record_mode='typist')
 
 
 if __name__ == "__main__":
-    # record_single_char_words()
-    record_double_char_words()
+    # load_from = './records/input_candidates_221116_202145.json'
+    # record_single_char_words(None)
+    record_double_char_words(None)
