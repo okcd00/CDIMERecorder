@@ -14,9 +14,9 @@
 
 | IME      |    Result File | Description | Recording Logs  |
 | :-------- | :--------: | --- | :--: |
-| Microsoft |   [结果文件]('./release/input_candidates.microsoft.json')<br>  | 微软输入法，关闭动态词频调整、自学习与云服务 | [原始录入日志 (单字全拼)]('./release/microsoft/input_candidates.typist.1c40_log.txt') &#x2705; <br>[原始录入日志 (双字全拼)]('./release/microsoft/input_candidates.typist.2c16_log.txt') &#x1F40C; <br>[原始录入日志 (三字全拼)]('./release/microsoft/input_candidates.typist.3c8_log.txt') &#x23F3; |
-| Tencent |   [结果文件]('./release/input_candidates.tencent.json')<br>  | QQ 输入法，关闭云组词、智能推荐、表情包 | [原始录入日志 (单字全拼)]('./release/tencent/input_candidates.typist.1c40_log.txt') &#x23F3; <br>[原始录入日志 (双字全拼)]('./release/tencent/input_candidates.typist.2c16_log.txt') &#x23F3; <br>[原始录入日志 (三字全拼)]('./release/input_candidates.typist.3c8_log.txt') &#x23F3; |
-| Sogou |   [结果文件]('./release/input_candidates.sogou.json')<br>  | 搜狗输入法，待后续追加 | [原始录入日志 (单字全拼)]('./release/sogou/input_candidates.typist.1c40_log.txt') &#x23F3; <br>[原始录入日志 (双字全拼)]('./release/sogou/input_candidates.typist.2c16_log.txt') &#x23F3; <br>[原始录入日志 (三字全拼)]('./release/sogou/input_candidates.typist.3c8_log.txt') &#x23F3; |
+| Microsoft |   [结果文件](./release/input_candidates.microsoft.json)<br>  | 微软输入法，关闭动态词频调整、自学习与云服务 | [原始录入日志 (单字全拼)](./release/microsoft/input_candidates.typist.1c40_log.txt) &#x2705; <br>[原始录入日志 (双字全拼)](./release/microsoft/input_candidates.typist.2c16_log.txt) &#x1F40C; <br>[原始录入日志 (三字全拼)](./release/microsoft/input_candidates.typist.3c8_log.txt) &#x23F3; |
+| Tencent |   [结果文件](./release/input_candidates.tencent.json)<br>  | QQ 输入法，关闭云组词、智能推荐、表情包 | [原始录入日志 (单字全拼)](./release/tencent/input_candidates.typist.1c40_log.txt) &#x23F3; <br>[原始录入日志 (双字全拼)](./release/tencent/input_candidates.typist.2c16_log.txt) &#x23F3; <br>[原始录入日志 (三字全拼)](./release/input_candidates.typist.3c8_log.txt) &#x23F3; |
+| Sogou |   [结果文件](./release/input_candidates.sogou.json)<br>  | 搜狗输入法，待后续追加 | [原始录入日志 (单字全拼)](./release/sogou/input_candidates.typist.1c40_log.txt) &#x23F3; <br>[原始录入日志 (双字全拼)](./release/sogou/input_candidates.typist.2c16_log.txt) &#x23F3; <br>[原始录入日志 (三字全拼)](./release/sogou/input_candidates.typist.3c8_log.txt) &#x23F3; |
 
 ## setup
 

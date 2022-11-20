@@ -250,7 +250,7 @@ class IMERecorder(object):
             if _is in self.records:
                 if update_mode in ['skip']:
                     continue
-            self.type_string(_is)
+            self.type_string(_is, interval=0.1)
             images = []
             for _page in range(self.record_page):
                 time.sleep(0.2)
@@ -281,17 +281,17 @@ class IMERecorder(object):
 
     def typist_recording(self, input_sequence_list):
         for _is_index, _is in tqdm(enumerate(input_sequence_list)):
-            self.type_string(f"{_is}")
+            self.type_string(f"{_is}", interval=0.1)
             self.tap(self.keyboard.enter_key)
-            self.type_string(f" | ")
+            self.type_string(f" | ", interval=0.1)
             if _is in self.records:
                 if self.update_mode in ['skip']:
                     continue
             for _page in range(self.record_page):
                 for _index in range(self.candidate_per_page):
-                    self.type_string(_is)
+                    self.type_string(_is, interval=0.1)
                     if _page > 0:
-                        self.tap(']', n=_page, interval=0.1)
+                        self.tap(self.keyboard.page_down_key, n=_page, interval=0.1)
                         time.sleep(0.1)
                     self.type_string(f"{_index+1}")
                     self.tap(self.keyboard.space_key, n=2, interval=0.1)
@@ -328,11 +328,12 @@ class IMERecorder(object):
             self.typist_recording(input_sequence_list)
 
 
-def record_single_char_words(existed_record_path):
+def record_single_char_words(existed_record_path, current_progress='zhang'):
     ir = IMERecorder(debug=True)
     ir.load_records(existed_record_path)
     py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r') 
                if not line.startswith('[')]
+    py_list = py_list[py_list.index(current_progress):]
     # test_list = ['wo', 'chendian', 'yaojiayou']
     ir(input_sequence_list=py_list, 
        record_page=5, record_mode='typist')
@@ -352,5 +353,5 @@ def record_double_char_words(existed_record_path, current_progress='anben'):
 
 if __name__ == "__main__":
     # load_from = './records/input_candidates_221116_202145.json'
-    # record_single_char_words(None)
-    record_double_char_words(None)
+    record_single_char_words(None)
+    # record_double_char_words(None)
