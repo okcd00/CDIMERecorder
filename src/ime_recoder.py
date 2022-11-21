@@ -293,6 +293,7 @@ class IMERecorder(object):
                     if _page > 0:
                         self.tap(self.keyboard.page_down_key, n=_page, interval=0.1)
                         time.sleep(0.1)
+                    time.sleep(0.1)
                     self.type_string(f"{_index+1}")
                     self.tap(self.keyboard.space_key, n=2, interval=0.1)
                     self.type_string(" | ")
@@ -328,30 +329,32 @@ class IMERecorder(object):
             self.typist_recording(input_sequence_list)
 
 
-def record_single_char_words(existed_record_path, current_progress='zhang'):
+def record_single_char_words(existed_record_path, current_progress=None):
     ir = IMERecorder(debug=True)
     ir.load_records(existed_record_path)
     py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r') 
                if not line.startswith('[')]
-    py_list = py_list[py_list.index(current_progress):]
+    if current_progress:
+        py_list = py_list[py_list.index(current_progress):]
     # test_list = ['wo', 'chendian', 'yaojiayou']
     ir(input_sequence_list=py_list, 
        record_page=5, record_mode='typist')
 
 
-def record_double_char_words(existed_record_path, current_progress='anben'):
+def record_double_char_words(existed_record_path, current_progress=None):
     ir = IMERecorder(debug=True)
     ir.load_records(existed_record_path)
-    py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r') 
+    py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r' ) 
                if not line.startswith('[')]
     double_word_py_list = [f'{a}{b}' for a, b in itertools.product(py_list, py_list)]
     # test_list = ['wo', 'chendian', 'yaojiayou']
-    double_word_py_list = double_word_py_list[double_word_py_list.index(current_progress):]
+    if current_progress:
+        double_word_py_list = double_word_py_list[double_word_py_list.index(current_progress):]
     ir(input_sequence_list=double_word_py_list, 
        record_page=2, record_mode='typist')
 
 
 if __name__ == "__main__":
     # load_from = './records/input_candidates_221116_202145.json'
-    record_single_char_words(None)
-    # record_double_char_words(None)
+    # record_single_char_words(None, current_progress=None)
+    record_double_char_words(None, 'ainiang')
