@@ -95,7 +95,7 @@ class IMERecorder(object):
         return [key]
 
     def type_string(self, input_sequence, interval=0.2):
-        self.set_foreground(self.window_handle)
+        self.set_foreground(self.window_handle) 
         self.keyboard.type_string(input_sequence, interval=interval) 
 
     def page_down(self, pd_key=']'):
@@ -290,12 +290,14 @@ class IMERecorder(object):
             for _page in range(self.record_page):
                 for _index in range(self.candidate_per_page):
                     self.type_string(_is, interval=0.1)
+                    time.sleep(0.1)
                     if _page > 0:
                         self.tap(self.keyboard.page_down_key, n=_page, interval=0.1)
                         time.sleep(0.1)
                     time.sleep(0.1)
                     self.type_string(f"{_index+1}")
-                    self.tap(self.keyboard.space_key, n=2, interval=0.1)
+                    time.sleep(0.1)
+                    self.tap(self.keyboard.space_key, n=2, interval=0.1) 
                     self.type_string(" | ")
                     time.sleep(0.1)
             self.change_line()
@@ -356,5 +358,5 @@ def record_double_char_words(existed_record_path, current_progress=None):
 
 if __name__ == "__main__":
     # load_from = './records/input_candidates_221116_202145.json'
-    # record_single_char_words(None, current_progress=None)
-    record_double_char_words(None, 'ainiang')
+    record_single_char_words(None, current_progress='ai')
+    # record_double_char_words(None, 'ainiang') 
