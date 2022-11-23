@@ -94,19 +94,28 @@ class IMERecorder(object):
             return [self.keyboard.numpad_keys[key[3:]]]
         return [key]
 
-    def type_string(self, input_sequence, interval=0.2):
+    def type_string(self, input_sequence, interval=0.1):
         self.set_foreground(self.window_handle) 
         self.keyboard.type_string(input_sequence, interval=interval) 
+        time.sleep(interval)
 
-    def page_down(self, pd_key=']'):
+    def type_delimeter(self, delimeter=' | ', interval=0.05):
+        self.type_string(delimeter, interval=interval)
+
+    def page_down(self, pd_key=None, n=1, interval=0.1):
+        if pd_key is None:
+            pd_key = self.keyboard.page_down_key
         # press and release
-        self.tap(pd_key, n=1, interval=0.1)
+        self.tap(pd_key, n=n, interval=interval)
+        time.sleep(interval)
 
-    def change_line(self):
-        self.tap(self.keyboard.enter_key, n=1, interval=0.1)
+    def change_line(self, interval=0.1):
+        self.tap(self.keyboard.enter_key, n=1, interval=interval)
+        time.sleep(interval)
 
-    def clear_board(self):
+    def clear_board(self, interval=0.1):
         self.tap(self.keyboard.backspace_key, n=25, interval=0.1)
+        time.sleep(interval)
 
     def _get_screenshot(self, offsets=None, handle=None, postfix=None):
         if handle is None:
@@ -250,7 +259,7 @@ class IMERecorder(object):
             if _is in self.records:
                 if update_mode in ['skip']:
                     continue
-            self.type_string(_is, interval=0.1)
+            self.type_string(_is)
             images = []
             for _page in range(self.record_page):
                 time.sleep(0.2)
@@ -280,26 +289,24 @@ class IMERecorder(object):
             self.print("Finished at:", time.ctime())
 
     def typist_recording(self, input_sequence_list):
-        for _is_index, _is in tqdm(enumerate(input_sequence_list)):
-            self.type_string(f"{_is}", interval=0.1)
+        for _, _is in tqdm(enumerate(input_sequence_list)):
+            _is = _is.strip()
+            self.type_string(f"{_is}")
             self.tap(self.keyboard.enter_key)
-            self.type_string(f" | ", interval=0.1)
+            self.type_delimeter()
             if _is in self.records:
                 if self.update_mode in ['skip']:
                     continue
             for _page in range(self.record_page):
                 for _index in range(self.candidate_per_page):
-                    self.type_string(_is, interval=0.1)
-                    time.sleep(0.1)
+                    self.type_string(_is)
                     if _page > 0:
-                        self.tap(self.keyboard.page_down_key, n=_page, interval=0.1)
-                        time.sleep(0.1)
+                        # | self.page_down(n=_page)
+                        self.page_down(pd_key=']', n=_page)
                     time.sleep(0.1)
                     self.type_string(f"{_index+1}")
-                    time.sleep(0.1)
                     self.tap(self.keyboard.space_key, n=2, interval=0.1) 
-                    self.type_string(" | ")
-                    time.sleep(0.1)
+                    self.type_delimeter()
             self.change_line()
 
     def __call__(self, input_sequence_list, 
@@ -358,5 +365,5 @@ def record_double_char_words(existed_record_path, current_progress=None):
 
 if __name__ == "__main__":
     # load_from = './records/input_candidates_221116_202145.json'
-    record_single_char_words(None, current_progress='ai')
-    # record_double_char_words(None, 'ainiang') 
+    # record_single_char_words(None, current_progress='ai')
+    record_double_char_words(None, 'anhong') 
