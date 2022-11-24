@@ -36,7 +36,7 @@ def construct_input_candidates(log_path_case, dump_path):
 
 
 if __name__ == "__main__":
-    target = 'tencent'
+    target = 'microsoft'
     dump_path = f'./release/input_candidates.{target}.json'
     src_path = []
     for file_path in ['1c40_log.txt', '2c16_log.txt', '3c8_log.txt']:
