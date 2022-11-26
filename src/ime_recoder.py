@@ -366,4 +366,4 @@ def record_double_char_words(existed_record_path, current_progress=None):
 if __name__ == "__main__":
     # load_from = './records/input_candidates_221116_202145.json'
     # record_single_char_words(None, current_progress='ai')
-    record_double_char_words(None, 'bazhuan') 
+    record_double_char_words(None, 'baitui') 
