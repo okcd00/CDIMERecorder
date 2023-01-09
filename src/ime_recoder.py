@@ -16,11 +16,11 @@ sys.path.append('../')
 # main packages
 import re
 import cv2
+import requests
 import win32gui
 # import pywinauto
 import itertools
 import numpy as np
-import paddlehub as hub
 from tqdm import tqdm
 from PIL import Image, ImageGrab
 from utils import *
@@ -34,29 +34,56 @@ class IMERecorder(object):
     EDITOR_WINDOW_NAME = '*new 1 - Notepad++'  # the editor window 
     RECORD_DIR_PATH = './records/'  # the path to store captures
 
-    # relative position x1, y1, x2, y2
-    # Microsoft IME
-    # RECORD_OFFSETS = (66, 128, 1024, 172, 1024-66, 172-128)  
-    # Tencent IME
-    RECORD_OFFSETS = (66, 128, 1280, 176, 1280-66, 176-128)  
+    ## api url
+    # [Baidu IME]
+    BAIDU_API_URL = "https://olime.baidu.com/py?" + \
+        "input={}&inputtype=py&bg=1&ed=20&result=hanzi&resultcoding=utf-8&ch_en=0&clientinfo=web&version=1"
+    # [Google IME]
+    GOOGLE_API_URL = "https://inputtools.google.com/request?" + \
+      "text={}&itc=zh-t-i0-pinyin&num=20&cp=1&cs=1&ie=utf-8&oe=utf-8&app=demopage"
+    
+    ## relative position x1, y1, x2, y2
+    # [Microsoft IME]
+    MICROSOFT_RECORD_OFFSETS = (66, 128, 1024, 172, 1024-66, 172-128)  
+    # [Tencent IME]
+    TENCENT_RECORD_OFFSETS = (66, 128, 1280, 176, 1280-66, 176-128)  
 
-    def __init__(self, debug=False, use_ocr=True) -> None:
+    def __init__(self, debug=False, method='api', source='google') -> None:
+        """
+        method in ['ocr', 'typ', 'api']
+        """
         self.debug = debug
+        self.source = source
         self.project_path = PROJECT_PATH
 
         # member variables
-        self.window_handle = None
         self.update_mode = None
         self.record_page = 1
         self.candidate_per_page = 8
-        self.window_position = (0, 0, 0, 0)
-        self.keyboard = PyKeyboard()
-        self.tap = self.keyboard.tap_key
+        
+        # typ variables
+        if 'typ' in method:
+            self.window_handle = None
+            self.window_position = (0, 0, 0, 0)
+            self.keyboard = PyKeyboard()
+            self.tap = self.keyboard.tap_key
+
+        # api variables
+        if 'api' in method:
+            self.API_URL = {
+                'baidu': self.BAIDU_API_URL,
+                'google': self.GOOGLE_API_URL,
+            }.get(self.source)
 
         # ocr variables
-        self.ocr = None
         self.records = {}
-        if use_ocr:
+        if 'ocr' in method:
+            self.RECORD_OFFSETS = {
+                'microsoft': self.MICROSOFT_RECORD_OFFSETS,
+                'tencent': self.TENCENT_RECORD_OFFSETS
+            }.get(self.source)
+
+            import paddlehub as hub
             self.ocr = hub.Module(
                 name="chinese_ocr_db_crnn_server", 
                 enable_mkldnn=False)
@@ -250,6 +277,57 @@ class IMERecorder(object):
             # record_path is a file
             self.records = load_json(record_path)
 
+    def api_recording(self, input_sequence_list, 
+                      api_url, record_path, 
+                      update_mode='skip', 
+                      save_per_item=500):
+        for _is_index, _is in tqdm(enumerate(input_sequence_list)):
+            if _is in self.records:
+                if update_mode in ['skip']:
+                    continue
+            url = api_url.format(_is)
+            proxies = None
+            if self.source in ['google']:
+                proxies={
+                    'http':'http://127.0.0.1:1081',
+                    'https':'http://127.0.0.1:1081'}
+            # print(_is, url)
+            for i in range(10):
+                try:
+                    result = requests.get(url, proxies=proxies)
+                    # print(result)
+                except:
+                    if i >= 9:
+                        return [_is]
+                    else:
+                        time.sleep(0.5)
+                else:
+                    time.sleep(0.1)
+                    break
+            
+            candidates = []
+            rjson = result.json()
+            # print(rjson)
+
+            if self.source in ['google'] and rjson[0] == 'SUCCESS':
+                # 424it [03:43,  1.90it/s]
+                candidates = rjson[1][0][1]
+                cn_tags = rjson[1][0][3]["lc"]
+                candidates = [c for i, c in enumerate(candidates) if int(cn_tags[i]) == 16]
+            elif self.source in ['baidu'] and rjson['status'] == 'T':
+                # 424it [01:26,  4.90it/s]
+                candidates = [cand[0] for cand in rjson['result'][0]]
+
+            self.records.setdefault(_is, [])
+            self.records[_is].extend(candidates)
+            self.print('\n', _is, candidates)
+
+            if 0 < save_per_item <= _is_index and _is_index % save_per_item == 0:
+                self.dump_records(record_path)
+        else:
+            self.dump_records(record_path)
+            self.print("Finished at:", time.ctime())
+
     def ocr_recording(self, input_sequence_list, 
                       save_img=False,
                       record_path=None,
@@ -316,42 +394,49 @@ class IMERecorder(object):
                  record_mode='ocr',
                  update_mode='skip',
                  save_per_item=-1):
+
         self.record_page = record_page
         self.update_mode = update_mode
         # set the editor foreground
         if editor_window is None:
             editor_window = self.EDITOR_WINDOW_NAME
-        self.window_handle = self.find_handle(editor_window)
         # set the dump path
         if record_path is None:
             record_path = self.RECORD_DIR_PATH
         # for each input sequence, record the candidates.
         if record_mode in ['ocr']:
             # 24 seconds per input sequence (40 candidates)
+            self.window_handle = self.find_handle(editor_window)
             self.ocr_recording(
                 input_sequence_list, 
                 save_img=False,
                 record_path=record_path,
                 save_per_item=save_per_item)
-        elif record_mode in ['typist']:
+        elif record_mode in ['typ', 'type', 'typist']:
             # 80 seconds per input sequence (40 candidates)
+            self.window_handle = self.find_handle(editor_window)
             self.typist_recording(input_sequence_list)
+        elif record_mode in ['api']:
+            self.api_recording(
+                input_sequence_list, 
+                api_url=self.API_URL, 
+                record_path=os.path.join(self.project_path, 'records', self.source))
 
 
-def record_single_char_words(existed_record_path, current_progress=None):
-    ir = IMERecorder(debug=True)
+def record_single_char_words(existed_record_path, current_progress=None, source='google'):
+    ir = IMERecorder(source=source, debug=True)
     ir.load_records(existed_record_path)
     py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r') 
                if not line.startswith('[')]
     if current_progress:
         py_list = py_list[py_list.index(current_progress):]
     # test_list = ['wo', 'chendian', 'yaojiayou']
-    ir(input_sequence_list=py_list, 
-       record_page=5, record_mode='typist')
+    ir(input_sequence_list=py_list,
+       record_page=5, record_mode='api')
 
 
-def record_double_char_words(existed_record_path, current_progress=None):
-    ir = IMERecorder(debug=True)
+def record_double_char_words(existed_record_path, current_progress=None, source='google'):
+    ir = IMERecorder(source=source, debug=True)
     ir.load_records(existed_record_path)
     py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r' ) 
                if not line.startswith('[')]
@@ -366,4 +451,5 @@ def record_double_char_words(existed_record_path, current_progress=None):
 if __name__ == "__main__":
     # load_from = './records/input_candidates_221116_202145.json'
     # record_single_char_words(None, current_progress='ai')
-    record_double_char_words(None, 'baitui') 
+    # record_double_char_words(None, 'baitui') 
+    record_single_char_words(None, current_progress=None)
