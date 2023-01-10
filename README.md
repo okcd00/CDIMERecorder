@@ -4,19 +4,19 @@
 
 ## Result Recording Files
 
-> 当前进度 (22/11/23 12:00)
+> 当前进度 (23/01/10 20:00)
 
 | IME      |    Result File | Description | Recording Logs  |
 | :-------- | :--------: | --- | :--: |
 | Microsoft |   [结果文件](./release/input_candidates.microsoft.json)<br>  | 微软输入法，关闭动态词频调整、自学习与云服务 | [原始录入日志 (单字全拼)](./records/microsoft/input_candidates.typist.1c40_log.txt) &#x2705; <br>[原始录入日志 (双字全拼)](./records/microsoft/input_candidates.typist.2c16_log.txt) &#x1F40C; <br>[原始录入日志 (三字全拼)](./records/microsoft/input_candidates.typist.3c8_log.txt) &#x23F3; |
 | Tencent |   [结果文件](./release/input_candidates.tencent.json)<br>  | QQ 输入法，关闭云组词、智能推荐、表情包 | [原始录入日志 (单字全拼)](./records/tencent/input_candidates.typist.1c40_log.txt) &#x2705; <br>[原始录入日志 (双字全拼)](./records/tencent/input_candidates.typist.2c16_log.txt) &#x1F40C; <br>[原始录入日志 (三字全拼)](./records/input_candidates.typist.3c8_log.txt) &#x23F3; |
-| ~~Sogou~~ |   -  | 搜狗输入法，无法阻止动态词频调整 | 
-| ~~Google~~ |   -  | 谷歌输入法，较老，无法配置输入法设置 | 
+| Google |   [结果文件](./release/input_candidates.google.json)<br>  | 谷歌输入法，使用 WebAPI，无动态词频干扰 | 原始录入日志 (单字全拼) &#x2705; <br>原始录入日志 (双字全拼) &#x2705; <br> 原始录入日志 (三字全拼) &#x23F3; |
+| ~~Sogou~~ |   -  | 搜狗输入法，无法阻止动态词频调整 | |
 
 
 ## IME 记录耗时
 
-+ 由于 `typist` 方法是模拟输入，所以时间消耗较大，给出平均耗时作为参考：   
++ `typist` 方法为键盘模拟输入，所以时间消耗较大，给出平均耗时作为参考：   
   + 单字全拼，top-80 候选时，全序列：`424it [11:09:56, 94.80s/it]`     
   + 双字全拼，top-16 候选时，单序列：`424it [4:46:17, 40.51s/it]` x 424 times    
   + 三字全拼，top-8 候选时，单序列：`424it [4:46:17, 40.51s/it]` x (424 x 424) times    
@@ -24,6 +24,9 @@
   + 23s for top-80 
   + 14s for top-40 
   + 本 repo 中使用 PaddleHub-OCR 测试。
++ 使用 IME WebAPI 的情况下，通常与该 API 的 QPS 及连通效率有关：
+  + Google WebAPI：`156632it [16:19:47,  2.66it/s]`
+  + Baidu WebAPI：``
 
 ## Setup - Typist
 > 效率较低，但准确性可以保障的方案，可用于允许 `禁用动态词频` 的输入法
