@@ -13,7 +13,6 @@ import time
 sys.path.append('./')
 sys.path.append('../')
 
-# main packages
 import re
 import cv2
 import requests
@@ -22,12 +21,12 @@ import win32gui
 import itertools
 import numpy as np
 from tqdm import tqdm
+
 from PIL import Image, ImageGrab
 from utils import *
 from pprint import pprint
 from file_io import load_json, dump_json
 from pypinyin import pinyin, Style
-from pykeyboard import PyKeyboard  # PyUserInput
 
 
 class IMERecorder(object):
@@ -35,10 +34,10 @@ class IMERecorder(object):
     RECORD_DIR_PATH = './records/'  # the path to store captures
 
     ## api url
-    # [Baidu IME]
+    # [Baidu IME] fewer candidates but more accurate
     BAIDU_API_URL = "https://olime.baidu.com/py?" + \
         "input={}&inputtype=py&bg=1&ed=20&result=hanzi&resultcoding=utf-8&ch_en=0&clientinfo=web&version=1"
-    # [Google IME]
+    # [Google IME] a complete candidate list but fewer associations
     GOOGLE_API_URL = "https://inputtools.google.com/request?" + \
       "text={}&itc=zh-t-i0-pinyin&num=20&cp=1&cs=1&ie=utf-8&oe=utf-8&app=demopage"
     
@@ -65,6 +64,8 @@ class IMERecorder(object):
         if 'typ' in method:
             self.window_handle = None
             self.window_position = (0, 0, 0, 0)
+            
+            from pykeyboard import PyKeyboard  # PyUserInput
             self.keyboard = PyKeyboard()
             self.tap = self.keyboard.tap_key
 
@@ -261,10 +262,13 @@ class IMERecorder(object):
         records = {k: stable_unique(records[k]) for k in sorted(records.keys())}
         return records
 
-    def dump_records(self, record_path):
+    def dump_records(self, record_path, file_path=None):
         # record_path is a directory
-        file_path = 'input_candidates_{}.{}'.format(
-                time.strftime('%y%m%d_%H%M%S', time.localtime()), 'json')
+        if file_path is None:
+            file_path = 'input_candidates_{}.{}'.format(
+                    time.strftime('%y%m%d_%H%M%S', time.localtime()), 'json')
+        elif '{}' in file_path:
+            file_path = file_path.format(time.strftime('%y%m%d_%H%M%S', time.localtime()))
         # arrange records for repeat candidates
         self.records = self.arrange_records(self.records)
         dump_path = os.path.join(record_path, file_path)
@@ -280,7 +284,7 @@ class IMERecorder(object):
     def api_recording(self, input_sequence_list, 
                       api_url, record_path, 
                       update_mode='skip', 
-                      save_per_item=500):
+                      save_per_item=1000):
         for _is_index, _is in tqdm(enumerate(input_sequence_list)):
             if _is in self.records:
                 if update_mode in ['skip']:
@@ -288,6 +292,7 @@ class IMERecorder(object):
             url = api_url.format(_is)
             proxies = None
             if self.source in ['google']:
+                # about 380 seconds per 1000 items
                 proxies={
                     'http':'http://127.0.0.1:1081',
                     'https':'http://127.0.0.1:1081'}
@@ -313,7 +318,8 @@ class IMERecorder(object):
                 # 424it [03:43,  1.90it/s]
                 candidates = rjson[1][0][1]
                 cn_tags = rjson[1][0][3]["lc"]
-                candidates = [c for i, c in enumerate(candidates) if int(cn_tags[i]) == 16]
+                candidates = [c for i, c in enumerate(candidates) 
+                              if list(set(map(int, cn_tags[i].split()))) == [16]]
             elif self.source in ['baidu'] and rjson['status'] == 'T':
                 # 424it [01:26,  4.90it/s]
                 candidates = [cand[0] for cand in rjson['result'][0]]
@@ -325,7 +331,7 @@ class IMERecorder(object):
             if 0 < save_per_item <= _is_index and _is_index % save_per_item == 0:
                 self.dump_records(record_path)
         else:
-            self.dump_records(record_path)
+            self.dump_records(record_path, file_path="input_andidates.api.{}.json")
             self.print("Finished at:", time.ctime())
 
     def ocr_recording(self, input_sequence_list, 
@@ -420,7 +426,8 @@ class IMERecorder(object):
             self.api_recording(
                 input_sequence_list, 
                 api_url=self.API_URL, 
-                record_path=os.path.join(self.project_path, 'records', self.source))
+                record_path=os.path.join(self.project_path, 'records', self.source),
+                save_per_item=5000)
 
 
 def record_single_char_words(existed_record_path, current_progress=None, source='google'):
@@ -445,11 +452,12 @@ def record_double_char_words(existed_record_path, current_progress=None, source=
     if current_progress:
         double_word_py_list = double_word_py_list[double_word_py_list.index(current_progress):]
     ir(input_sequence_list=double_word_py_list, 
-       record_page=2, record_mode='typist')
+       record_page=2, record_mode='api')
 
 
 if __name__ == "__main__":
     # load_from = './records/input_candidates_221116_202145.json'
     # record_single_char_words(None, current_progress='ai')
-    # record_double_char_words(None, 'baitui') 
-    record_single_char_words(None, current_progress=None)
+    record_double_char_words(
+        './records/baidu/input_candidates.api.230109_155606.json', 
+        current_progress=None, source='baidu')  # 'baitui') 

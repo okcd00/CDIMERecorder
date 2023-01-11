@@ -25,7 +25,7 @@ def construct_input_candidates(json_path, dump_path):
     for key in tqdm(sorted(record_dict.keys())):
         items = record_dict[key]
         input_sequence = key
-        candidates = [token.strip() for token in items[1:] 
+        candidates = [token.strip() for token in items 
                       if token.strip() and is_pure_chinese_phrase(token) and all([t in VOCAB for t in token])]
         candidate_dict[input_sequence] = candidates
     dump_json(candidate_dict, dump_path)
@@ -34,7 +34,8 @@ def construct_input_candidates(json_path, dump_path):
 if __name__ == "__main__":
     target = 'google'
     dump_path = f'./release/input_candidates.{target}.json'
-    src_path = f'./records/{target}/' + 'input_candidates.api.230110_185602.json'
+    src_path = f'./records/{target}/' + 'input_candidates.api.230110_185602.json'  # google
+    # src_path = f'./records/{target}/' + 'input_candidates.api.230111_071124.json'  # baidu
     
     # pprint(src_path)
     construct_input_candidates(json_path=src_path, dump_path=dump_path)
