@@ -331,7 +331,7 @@ class IMERecorder(object):
             if 0 < save_per_item <= _is_index and _is_index % save_per_item == 0:
                 self.dump_records(record_path)
         else:
-            self.dump_records(record_path, file_path="input_andidates.api.{}.json")
+            self.dump_records(record_path, file_path="input_candidates.api.{}.json")
             self.print("Finished at:", time.ctime())
 
     def ocr_recording(self, input_sequence_list, 
@@ -455,9 +455,30 @@ def record_double_char_words(existed_record_path, current_progress=None, source=
        record_page=2, record_mode='api')
 
 
+def record_double_but_missed_sequences(existed_record_path, current_progress=None, source='google'):
+    ir = IMERecorder(source=source, debug=True)
+    ir.load_records(existed_record_path)
+    py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r' ) 
+               if not line.startswith('[')]
+    double_word_py_list = []
+    for a, b in itertools.product(py_list, py_list):
+        for i in range(1, len(b)):
+            double_word_py_list.append(f'{a}{b[:-i]}')
+    # test_list = ['wo', 'chend', 'yaojiayo']
+    if current_progress:
+        double_word_py_list = double_word_py_list[double_word_py_list.index(current_progress):]
+    ir(input_sequence_list=double_word_py_list, 
+       record_page=2, record_mode='api', save_per_item=10000)
+       
+
 if __name__ == "__main__":
     # load_from = './records/input_candidates_221116_202145.json'
     # record_single_char_words(None, current_progress='ai')
-    record_double_char_words(
-        './records/baidu/input_candidates.api.230109_155606.json', 
+    """
+    record_double_but_missed_sequences(
+        './records/baidu/input_candidates.api.230111_071124.json', 
         current_progress=None, source='baidu')  # 'baitui') 
+    """
+    record_double_but_missed_sequences(
+        './records/google/input_candidates_230112_062126.json', 
+        current_progress=None, source='google')  # 'baitui') 
