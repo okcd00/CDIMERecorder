@@ -34,7 +34,7 @@ def construct_input_candidates(json_path, dump_path):
 if __name__ == "__main__":
     target = 'google'
     dump_path = f'./release/input_candidates.{target}.json'
-    src_path = f'./records/{target}/' + 'input_candidates.api.230110_185602.json'  # google
+    src_path = f'./records/{target}/' + 'input_candidates.api.230119_053412.json'  # google
     # src_path = f'./records/{target}/' + 'input_candidates.api.230111_071124.json'  # baidu
     
     # pprint(src_path)

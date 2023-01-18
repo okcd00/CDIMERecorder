@@ -455,6 +455,20 @@ def record_double_char_words(existed_record_path, current_progress=None, source=
        record_page=2, record_mode='api')
 
 
+def record_single_but_missed_sequences(existed_record_path, current_progress=None, source='google'):
+    ir = IMERecorder(source=source, debug=True)
+    ir.load_records(existed_record_path)
+    py_list = [line.strip() for line in open('./data/vocab_pinyin.txt', 'r' ) 
+               if not line.startswith('[')]
+    single_word_py_list = []
+    for a in py_list:
+        for i in range(1, len(a)):
+            single_word_py_list.append(f'{a[:-i]}')
+    # test_list = ['wo', 'chend', 'yaojiayo']
+    ir(input_sequence_list=single_word_py_list, 
+       record_page=2, record_mode='api', save_per_item=10000)
+
+
 def record_double_but_missed_sequences(existed_record_path, current_progress=None, source='google'):
     ir = IMERecorder(source=source, debug=True)
     ir.load_records(existed_record_path)
@@ -469,7 +483,20 @@ def record_double_but_missed_sequences(existed_record_path, current_progress=Non
         double_word_py_list = double_word_py_list[double_word_py_list.index(current_progress):]
     ir(input_sequence_list=double_word_py_list, 
        record_page=2, record_mode='api', save_per_item=10000)
-       
+
+
+def update_with_unseen_pinyin_sequences(
+        input_senquences, origin_log_json_path):
+    ir = IMERecorder(source='google', debug=True)
+    ir.load_records(origin_log_json_path)
+
+    # take google API as default
+    ir(input_sequence_list=input_senquences, record_mode='api', save_per_item=10000)
+    for inps in input_senquences:
+        if inps not in ir.records:
+            ir.records[inps] = ir
+    ir.dump_records(origin_log_json_path)
+        
 
 if __name__ == "__main__":
     # load_from = './records/input_candidates_221116_202145.json'
@@ -478,7 +505,16 @@ if __name__ == "__main__":
     record_double_but_missed_sequences(
         './records/baidu/input_candidates.api.230111_071124.json', 
         current_progress=None, source='baidu')  # 'baitui') 
-    """
+
     record_double_but_missed_sequences(
         './records/google/input_candidates_230112_062126.json', 
         current_progress=None, source='google')  # 'baitui') 
+    """
+
+    path_google_record = './records/google/input_candidates.api.230112_161333.json'
+    record_single_but_missed_sequences(
+        './records/google/input_candidates.api.230119_045210.json',
+        current_progress=None, source='google')
+    
+    # sc = ['a']
+    # update_with_unseen_pinyin_sequences(sc, path_google_record)
